@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Learning ZJU Helper
 // @namespace    https://github.com/camel-exvl/Learning-ZJU-Helper
-// @version      1.2.3
+// @version      1.2.4
 // @description  show score in course
 // @author       camel-exvl
 // @updateURL    https://raw.githubusercontent.com/camel-exvl/Learning-ZJU-Helper/master/Learning-ZJU-Helper.js
@@ -145,6 +145,8 @@ function showScoreInHomework() {
 		// modify table header
 		if (document.getElementsByClassName("large-12 column").length != 0) {
 			let tableHeader = document.getElementsByClassName("column-header row collapse")[0];
+            let nameElement = tableHeader.getElementsByClassName("large-10 column")[0];
+            nameElement.className = "large-8 column";
 			let statusElement = tableHeader.getElementsByClassName("large-4 column")[0];
 			statusElement.className = "large-2 column";
 			let scoreElement = tableHeader.getElementsByClassName("large-12 column")[0];
@@ -175,7 +177,9 @@ function showScoreInHomework() {
 		let homeworkList = document.getElementsByClassName("list-item row collapse ng-scope");
 		for (let i = 0; i < homeworkList.length; i++) {
 			let scoreElement = homeworkList[i].getElementsByClassName("large-4 column")[1].getElementsByTagName("span")[0];
-			let name = homeworkList[i].getElementsByClassName("large-10 column")[0].getElementsByTagName("span")[0].innerText;
+			let nameElement = homeworkList[i].getElementsByClassName("large-10 column")[0];
+            nameElement.className = "large-8 column";
+            let name = nameElement.getElementsByTagName("span")[0].innerText;
 
 			// find activityID
 			let activityID;
@@ -215,13 +219,13 @@ function showScoreInHomework() {
 			let endElement;
 			if (homeworkList[i].getElementsByClassName("large-8 column end").length != 0) {
 				endElement = homeworkList[i].getElementsByClassName("large-8 column end")[0];
-				endElement.className = "large-4 column end";
+				endElement.className = "large-6 column end";
 				let statusElement = homeworkList[i].getElementsByClassName("large-4 column")[0];
 				statusElement.className = "large-2 column";
 				let formElement = homeworkList[i].getElementsByClassName("large-6 group-set column")[0];
 				formElement.className = "large-4 group-set column";
 			} else {
-				endElement = homeworkList[i].getElementsByClassName("large-4 column end")[0];
+				endElement = homeworkList[i].getElementsByClassName("large-6 column end")[0];
 			}
 
 			// show highest score
@@ -324,6 +328,7 @@ function showStatisticsData(id) {
 							status = "<span style='color:red'>未提交</span>";
 							break;
 						case "un_marked":
+						case "un_scored":
 							status = "<span style='color:orange'>未评分</span>";
 							submittedNum++;
 							break;
@@ -345,10 +350,10 @@ function showStatisticsData(id) {
 	let submittedRate = ((submittedNum / studentNum) * 100).toFixed(2);
 	let markedRate = ((markedNum / submittedNum) * 100).toFixed(2);
 	if (studentNum == 0) {
-		submittedRate = 100.00;
+		submittedRate = 100.0;
 	}
 	if (submittedNum == 0) {
-		markedRate = 100.00;
+		markedRate = 100.0;
 	}
 	layui.use(["layer", "table"], function () {
 		var layer = layui.layer;
