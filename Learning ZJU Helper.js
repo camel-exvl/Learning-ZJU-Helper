@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Learning ZJU Helper
 // @namespace    https://github.com/camel-exvl/Learning-ZJU-Helper
-// @version      1.2.4
+// @version      1.2.5
 // @description  show score in course
 // @author       camel-exvl
 // @updateURL    https://raw.githubusercontent.com/camel-exvl/Learning-ZJU-Helper/master/Learning-ZJU-Helper.js
@@ -439,7 +439,7 @@ function showScoreInScore() {
 		let activityList = document.getElementsByClassName("activity row ng-scope");
 		for (let i = 0; i < activityList.length; i++) {
 			let originScoreElement = activityList[i].getElementsByClassName("operand large-10 columns zh-CN")[0].getElementsByTagName("span")[0];
-			let name = activityList[i].getElementsByClassName("title ng-scope")[0].getElementsByTagName("a")[0].innerText;
+			let name = activityList[i].getElementsByClassName("unpublished-title ng-scope")[0].getElementsByTagName("a")[0].innerText;
 
 			// find activityID
 			let activityID;
