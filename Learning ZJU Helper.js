@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Learning ZJU Helper
 // @namespace    https://github.com/camel-exvl/Learning-ZJU-Helper
-// @version      1.3.0
+// @version      1.3.1
 // @description  show score in course
 // @author       camel-exvl
 // @updateURL    https://raw.githubusercontent.com/camel-exvl/Learning-ZJU-Helper/master/Learning-ZJU-Helper.js
@@ -504,6 +504,36 @@ async function playVideo(course_data, user_data, video) {
 	await postAPI(`statistics/api/user-visits`, body);
 	// 模拟视频加载
 	video_timestamp += 5000 + Math.floor(Math.random() * 10000); // 模拟加载时间5~15秒
+
+	// 模拟用户点击播放
+	body = JSON.stringify({
+		user_id: user_data["id"],
+		org_id: user_data["org"]["id"],
+		course_id: course_data["id"],
+		module_id: video["module_id"],
+		activity_id: video["id"],
+		upload_id: video["uploads"][0]["id"],
+		reply_id: null,
+		comment_id: null,
+		forum_type: "",
+		action_type: "view",
+		is_teacher: false,
+		is_student: true,
+		ts: video_timestamp,
+		user_agent: user_agent,
+		meeting_type: "online_video",
+		org_name: user_data["org"]["name"],
+		org_code: user_data["org"]["code"],
+		user_no: user_data["user_no"],
+		user_name: user_data["name"],
+		course_code: course_data["course_code"],
+		course_name: course_data["name"],
+		dep_id: user_data["department"]["id"],
+		dep_name: user_data["department"]["name"],
+		dep_code: user_data["department"]["code"]
+	});
+    await postAPI(`statistics/api/online-videos`, body);
+
 	let total_seconds = video["uploads"][0]["videos"][0]["duration"];
 	total_seconds = Math.floor(total_seconds);
 	// 每60秒提交一次进度，但通过10%概率+-1秒来模拟网络波动
@@ -529,6 +559,7 @@ async function playVideo(course_data, user_data, video) {
 		let data = await postAPI(`api/course/activities-read/${video["id"]}`, body);
 		completeness = data["completeness"];
 		// online-videos 数据
+		// 这边这个timestamp服务器没有严格验证，可以发未来的时间
 		body = JSON.stringify({
 			user_id: user_data["id"],
 			org_id: user_data["org"]["id"],
@@ -589,7 +620,7 @@ async function playVideo(course_data, user_data, video) {
 		layui.element.progress("videoProgress", ((time / total_seconds) * 100).toFixed(2) + "%");
 		layui.element.render("progress", "videoProgress");
 		// 随机等待1~3秒
-		await sleep(1000 + Math.random() * 2000);
+		await sleep(1000 + Math.random() * 2000); // 这个等待是为了防止请求过于密集，并不影响视频观看时间戳
 	}
 	if (completeness === "full") {
 		console.log(`[Learning ZJU Helper] watched video ${video["id"]} successfully!`);
@@ -611,23 +642,32 @@ async function playVideos() {
 	let activityForUser = (await getAPI(`course/${courseID}/activity-reads-for-user`))["activity_reads"];
 	let videos = [];
 	let complete_videos = new Set();
+	let total_videos = 0;
 	for (let i = 0; i < activityForUser.length; i++) {
 		if (activityForUser[i]["completeness"] == "full") {
 			complete_videos.add(activityForUser[i]["activity_id"]);
 		}
 	}
 	for (let i = 0; i < activities.length; i++) {
-		if (activities[i]["type"] == "online_video" && !complete_videos.has(activities[i]["id"])) {
-			videos.push(activities[i]);
+		if (activities[i]["type"] == "online_video") {
+			total_videos += 1;
+			if (!complete_videos.has(activities[i]["id"])) {
+				videos.push(activities[i]);
+			}
 		}
 	}
 
+    if (videos.length === 0) {
+        alert("没有需要观看的视频！");
+        document.getElementById("autoWatchBtn").disabled = false;
+        return;
+    }
 	console.log("[Learning ZJU Helper] found video IDs: " + videos.map((v) => v["id"]).join(", "));
 	layui.use("layer", function () {
 		var layer = layui.layer;
 		layer.open({
 			type: 1, // page 层类型
-			area: ["600px", "280px"],
+			area: ["600px", "300px"],
 			title: "自动观看视频",
 			shade: 0.6, // 遮罩透明度
 			shadeClose: false, // 点击遮罩区域，关闭弹层
@@ -635,7 +675,9 @@ async function playVideos() {
 			anim: 0, // 0-6 的动画形式，-1 不开启
 			content: `
                 <div style="padding: 20px;">
-                    <div align='center'>共找到 ${videos.length} 个未观看视频</div>
+                    <div align='center'>共找到 ${total_videos} 个视频</div>
+                    <br>
+                    <div align='center'><span id='videoNum'>${videos.length}</span> 个视频尚未完成</div>
                     <br>
                     <div>
                         正在观看 <span id='videoStatus'></span>：
@@ -654,7 +696,10 @@ async function playVideos() {
 			success: async function (layero, index, that) {
 				video_playing = true;
 				for (let i = 0; i < videos.length; i++) {
+                    document.getElementById("videoNum").innerText = `${videos.length - i}`;
 					document.getElementById("videoStatus").innerText = `${videos[i]["title"]}`;
+					layui.element.progress("videoProgress", "0%");
+					layui.element.render("progress", "videoProgress");
 					layui.element.progress("totalProgress", ((i / videos.length) * 100).toFixed(2) + "%");
 					layui.element.render("progress", "totalProgress");
 					const success = await playVideo(course, user, videos[i]);
@@ -674,8 +719,8 @@ async function playVideos() {
 			},
 			end: function () {
 				video_playing = false;
-                // 刷新页面，以更新学习状态
-                window.location.reload();
+				// 刷新页面，以更新学习状态
+				window.location.reload();
 			}
 		});
 	});
